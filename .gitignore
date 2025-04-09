@@ -1,0 +1,39 @@
+# Visual Studio files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build output
+bin/
+obj/
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env
+*.env
+
+# Docker files
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test files
+*.test
+*.testsettings
+*.testresults
+
+# Temporary files
+*.tmp
+*.temp
+*.bak 
