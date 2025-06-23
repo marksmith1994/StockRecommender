@@ -1,0 +1,122 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-content">
+      <h1 class="main-title">
+        <span class="title-icon">📈</span>
+        Stock Recommender
+      </h1>
+      <p class="subtitle">AI-powered stock recommendations and market insights</p>
+      
+      <!-- Exchange Rate Info -->
+      <div class="exchange-rate-info">
+        <span class="rate-label">Exchange Rate:</span>
+        <span class="rate-value">1 USD = £{{ exchangeRate.toFixed(4) }}</span>
+        <button class="refresh-rate-btn" (click)="refreshExchangeRate()" [disabled]="refreshingRate">
+          {{ refreshingRate ? '🔄' : '🔄' }}
+        </button>
+        <span class="last-update-text" *ngIf="lastRateUpdate">
+          Last updated: {{ lastRateUpdate | date:'short' }}
+        </span>
+      </div>
+    </div>
+    
+    <!-- Search Bar -->
+    <div class="search-container">
+      <div class="search-box">
+        <input 
+          type="text" 
+          placeholder="Search stocks (e.g., AAPL, MSFT, GOOGL)"
+          [(ngModel)]="searchTerm"
+          (input)="onSearchChange()"
+          class="search-input"
+        >
+        <button class="search-btn" (click)="searchStocks()">
+          🔍
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Portfolio Optimization Section -->
+  <section class="portfolio-section">
+    <div class="section-header">
+      <h2>🤖 AI Portfolio Optimizer</h2>
+      <p>Get personalized investment recommendations based on your risk tolerance</p>
+    </div>
+    
+    <div class="portfolio-controls">
+      <div class="control-group">
+        <label for="investmentAmount">Investment Amount (£)</label>
+        <input 
+          type="number" 
+          id="investmentAmount"
+          [(ngModel)]="portfolioAmount" 
+          min="1000" 
+          max="100000"
+          step="1000"
+          class="portfolio-input"
+        >
+      </div>
+      
+      <div class="control-group">
+        <label for="riskTolerance">Risk Tolerance</label>
+        <select id="riskTolerance" [(ngModel)]="riskTolerance" class="portfolio-select">
+          <option value="Conservative">Conservative</option>
+          <option value="Moderate">Moderate</option>
+          <option value="Aggressive">Aggressive</option>
+        </select>
+        <small class="risk-description">{{ getRiskDescription() }}</small>
+      </div>
+      
+      <button class="generate-portfolio-btn" (click)="generatePortfolio()" [disabled]="generatingPortfolio">
+        {{ generatingPortfolio ? '🤖 Optimizing...' : '🚀 Generate Portfolio' }}
+      </button>
+    </div>
+
+    <!-- Portfolio Results -->
+    <div *ngIf="portfolioRecommendation" class="portfolio-results">
+      <app-portfolio-summary [portfolio]="portfolioRecommendation"></app-portfolio-summary>
+
+      <div class="portfolio-allocations">
+        <h3>Recommended Allocations</h3>
+        <div class="allocations-grid">
+          <app-allocation-card 
+            *ngFor="let allocation of portfolioRecommendation.allocations" 
+            [allocation]="allocation">
+          </app-allocation-card>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Loading State -->
+  <app-loading-spinner 
+    *ngIf="loading" 
+    message="Loading stock recommendations...">
+  </app-loading-spinner>
+
+  <!-- Error State -->
+  <app-error-message 
+    *ngIf="error" 
+    [title]="'Oops! Something went wrong'"
+    [message]="error"
+    (onRetry)="onRetry()">
+  </app-error-message>
+
+  <!-- Stock Grid -->
+  <div *ngIf="!loading && !error" class="stocks-grid">
+    <app-stock-card 
+      *ngFor="let stock of filteredStocks" 
+      [stock]="stock"
+      (stockClick)="onStockClick($event)">
+    </app-stock-card>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !error && filteredStocks.length === 0" class="empty-state">
+    <div class="empty-icon">📊</div>
+    <h3>No stocks found</h3>
+    <p>Try searching for a different stock symbol or check your connection.</p>
+  </div>
+</div> 

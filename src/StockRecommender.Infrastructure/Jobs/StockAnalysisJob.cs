@@ -1,19 +1,27 @@
+using System;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Quartz;
-using StockRecommender.Core;
-using StockRecommender.Models;
-using StockRecommender.Services;
+using StockRecommender.Core.Services;
+using StockRecommender.Core.Models;
+using StockRecommender.Infrastructure.Services;
 
-namespace StockRecommender.Services
+namespace StockRecommender.Infrastructure.Jobs
 {
     public class StockAnalysisJob : IJob
     {
-        private readonly FinnhubService _finnhubService;
-        private readonly StockAnalyzer _stockAnalyzer;
+        private readonly IFinnhubService _finnhubService;
+        private readonly IStockAnalyzer _stockAnalyzer;
+        private readonly ILogger<StockAnalysisJob> _logger;
 
-        public StockAnalysisJob(FinnhubService finnhubService, StockAnalyzer stockAnalyzer)
+        public StockAnalysisJob(
+            IFinnhubService finnhubService,
+            IStockAnalyzer stockAnalyzer,
+            ILogger<StockAnalysisJob> logger)
         {
             _finnhubService = finnhubService;
             _stockAnalyzer = stockAnalyzer;
+            _logger = logger;
         }
 
         public async Task Execute(IJobExecutionContext context)
@@ -31,35 +39,19 @@ namespace StockRecommender.Services
                     try
                     {
                         var quote = await _finnhubService.GetStockQuote(symbol);
-
-                        // Validate that we have valid price data
-                        if (quote.PreviousClose == 0)
+                        if (quote != null)
                         {
-                            Console.WriteLine($"Warning: Previous close price is zero for {symbol}. Skipping this stock.");
-                            continue;
+                            var recommendation = _stockAnalyzer.AnalyzeStock(quote);
+                            _logger.LogInformation(
+                                "Stock Analysis - Symbol: {Symbol}, Recommendation: {Recommendation}, Confidence: {Confidence}%",
+                                symbol,
+                                recommendation.Recommendation,
+                                recommendation.Confidence);
                         }
-
-                        var dailyRangePercent = (float)((quote.HighPrice - quote.LowPrice) / quote.PreviousClose * 100);
-
-                        var stockData = new StockData
-                        {
-                            Symbol = symbol,
-                            Open = (float)quote.OpenPrice,
-                            High = (float)quote.HighPrice,
-                            Low = (float)quote.LowPrice,
-                            Close = (float)quote.CurrentPrice,
-                            PreviousClose = (float)quote.PreviousClose,
-                            PriceChange = (float)quote.PriceChange,
-                            PriceChangePercent = (float)quote.PriceChangePercent,
-                            DailyRangePercent = dailyRangePercent,
-                            IsRecommended = false
-                        };
-
-                        stockDataList.Add(stockData);
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error fetching data for {symbol}: {ex.Message}");
+                        _logger.LogError(ex, "Error analyzing stock {Symbol}", symbol);
                     }
                 }
 
@@ -115,7 +107,7 @@ namespace StockRecommender.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in stock analysis job: {ex.Message}");
+                _logger.LogError(ex, "Error executing stock analysis job");
             }
         }
     }

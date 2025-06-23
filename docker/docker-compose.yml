@@ -1,0 +1,60 @@
+services:
+  # .NET Backend API
+  stock-recommender-api:
+    container_name: stock-recommender-api
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - Finnhub__ApiKey=${FINNHUB_API_KEY}
+    env_file:
+      - ../env.example
+    volumes:
+      - ../src/StockRecommender.API:/app/src
+      - /app/bin
+      - /app/obj
+    networks:
+      - stock-recommender-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/api/stocks"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Angular Frontend (Development with hot reload)
+  stock-recommender-ui:
+    container_name: stock-recommender-ui
+    build:
+      context: ../ui
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "4200:4200"
+    volumes:
+      - ../ui:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      stock-recommender-api:
+        condition: service_healthy
+    networks:
+      - stock-recommender-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4200"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  stock-recommender-network:
+    name: stock-recommender-network
+    driver: bridge 
